@@ -94,7 +94,7 @@ jobs:
         with:
           # FIX: jangan install package "tools" — sudah dihapus Google
           # (Warning: Failed to find package 'tools' → sdkmanager exit code 1)
-          packages: platform-tools platforms;android-36 platforms;android-35 platforms;android-34 build-tools;36.0.0 build-tools;35.0.0 build-tools;34.0.0
+          packages: platform-tools platforms;android-35 platforms;android-34 build-tools;35.0.0 build-tools;34.0.0
 
       - name: Install Android SDK extras
         shell: bash
@@ -102,7 +102,7 @@ jobs:
           set -euo pipefail
           # Install komponen yang dibutuhkan, toleransi partial failure
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          for pkg in             "platform-tools"             "platforms;android-36"             "platforms;android-35"             "platforms;android-34"             "build-tools;36.0.0"             "build-tools;35.0.0"             "build-tools;34.0.0"
+          for pkg in             "platform-tools"             "platforms;android-35"             "platforms;android-34"             "build-tools;35.0.0"             "build-tools;34.0.0"
           do
             echo ">> sdkmanager $pkg"
             sdkmanager --install "$pkg" || echo "::warning::Gagal install $pkg (mungkin sudah ada)"
@@ -117,7 +117,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Sanitize nama asset
         id: sanitize
@@ -221,9 +221,7 @@ jobs:
         if: steps.detect.outputs.type == 'flutter'
         uses: subosito/flutter-action@v2
         with:
-          # Pin Flutter before 3.44 because IconData became final in 3.44.
-          # Older projects using font_awesome_flutter 10.x otherwise fail at compile time.
-          flutter-version: "3.43.2"
+          flutter-version: "3.41.9"
           channel: stable
           cache: true
 
@@ -271,8 +269,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Compatible AGP for Flutter 3.43.x and compileSdk 36.
-          MIN_AGP="8.7.3"
+          # Flutter versi terbaru butuh Android Gradle Plugin minimal 8.11.1
+          MIN_AGP="8.12.1"
 
           for FILE in android/settings.gradle android/settings.gradle.kts android/build.gradle android/build.gradle.kts; do
             if [ -f "$FILE" ]; then
@@ -296,8 +294,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Stable Kotlin plugin compatible with AGP 8.7.x.
-          MIN_KOTLIN="2.1.20"
+          # Flutter versi terbaru butuh Kotlin Gradle Plugin minimal 2.2.20
+          MIN_KOTLIN="2.2.20"
 
           for FILE in android/settings.gradle android/settings.gradle.kts android/build.gradle android/build.gradle.kts; do
             if [ -f "$FILE" ]; then
@@ -317,21 +315,6 @@ jobs:
                 echo "Kotlin sesudah di $FILE:"
                 grep -n "org\.jetbrains\.kotlin\.android\|kotlin_version\|kotlin-gradle-plugin" "$FILE" || true
               fi
-            fi
-          done
-
-      - name: Ensure Flutter Android SDK 36
-        if: steps.detect.outputs.type == 'flutter'
-        working-directory: ${{ env.FLUTTER_PROJECT }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # Several current Android plugins require compileSdk 36.
-          for FILE in android/app/build.gradle android/app/build.gradle.kts; do
-            if [ -f "$FILE" ]; then
-              sed -i -E 's/(compileSdk(V)?[[:space:]]+)[0-9]+/\1 36/g' "$FILE" || true
-              sed -i -E 's/(targetSdk(V)?[[:space:]]+)[0-9]+/\1 36/g' "$FILE" || true
             fi
           done
 
